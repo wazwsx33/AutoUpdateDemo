@@ -6,7 +6,7 @@ package com.example.ideapad.autoupdatedemo;
 
 interface DownloadListener {
     void onProgress(int progress);
-    void onSuccess();
+    void onSuccess(String path);
     void onFailed();
     void onPaused();
     void onCanceled();

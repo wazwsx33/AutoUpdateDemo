@@ -1,9 +1,12 @@
 package com.example.ideapad.autoupdatedemo;
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -33,7 +36,9 @@ public class MainActivity extends AppCompatActivity {
 
     Information information = new Information();
     boolean getVersionFromServer = false;
+    //版本号
     int versionCode = -1;
+    //下载服务
     private DownloadService.DownloadBinder downloadBinder;
 
     private ServiceConnection connection = new ServiceConnection() {
@@ -181,6 +186,7 @@ public class MainActivity extends AppCompatActivity {
                 Log.d("Judgement", String.valueOf(true));
                 AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
                 builder.setMessage("存在更新，是否下载")
+                        .setCancelable(false)
                         .setPositiveButton("是", new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {

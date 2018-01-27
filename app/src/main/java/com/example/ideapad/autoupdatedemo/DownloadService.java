@@ -4,13 +4,20 @@ import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Binder;
+import android.os.Build;
 import android.os.Environment;
 import android.os.IBinder;
+import android.support.v4.content.FileProvider;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.NotificationCompat;
-import android.widget.ProgressBar;
+import android.util.Log;
+import android.webkit.MimeTypeMap;
 import android.widget.Toast;
 
 import java.io.File;
@@ -26,12 +33,16 @@ public class DownloadService extends Service {
         }
 
         @Override
-        public void onSuccess() {
+        public void onSuccess(String path) {
             downLoadTask = null;
             //下载成功时关闭通知，并通知下载成功
             stopForeground(true);
             getNotificationManager().notify(1, getNotification("下载成功", -1));
             Toast.makeText(DownloadService.this, "下载成功", Toast.LENGTH_SHORT).show();
+
+            //安装APK
+            installAPK(DownloadService.this, path);
+
         }
 
         @Override
@@ -140,4 +151,50 @@ public class DownloadService extends Service {
 
         return builder.build();
     }
+
+    /**
+     * 安装APK
+     * @param context
+     * @param path
+     */
+    private void installAPK(Context context,String path) {
+        File file = new File(path);
+        if(file.exists()){
+            openFile(file,context);
+        }else{
+            Toast.makeText(context,"安装失败",Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
+     * 打开文件
+     * @param var0
+     * @param var1
+     */
+    public void openFile(File var0, Context var1) {
+        Intent var2 = new Intent();
+        var2.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        var2.setAction(Intent.ACTION_VIEW);
+        if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.N){
+            Uri uriForFile = FileProvider.getUriForFile(var1, var1.getApplicationContext().getPackageName() + ".provider", var0);
+            var2.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            var2.setDataAndType(uriForFile, var1.getContentResolver().getType(uriForFile));
+        }else{
+            var2.setDataAndType(Uri.fromFile(var0), getMIMEType(var0));
+        }
+        try {
+            var1.startActivity(var2);
+        } catch (Exception var5) {
+            var5.printStackTrace();
+            Toast.makeText(var1, "没有找到打开此类文件的程序", Toast.LENGTH_SHORT).show();
+        }
+    }
+    public String getMIMEType(File var0) {
+        String var1 = "";
+        String var2 = var0.getName();
+        String var3 = var2.substring(var2.lastIndexOf(".") + 1, var2.length()).toLowerCase();
+        var1 = MimeTypeMap.getSingleton().getMimeTypeFromExtension(var3);
+        return var1;
+    }
+
 }

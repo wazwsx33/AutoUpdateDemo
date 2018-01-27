@@ -2,6 +2,7 @@ package com.example.ideapad.autoupdatedemo;
 
 import android.os.AsyncTask;
 import android.os.Environment;
+import android.util.Log;
 import android.widget.ProgressBar;
 
 import java.io.File;
@@ -28,6 +29,9 @@ public class DownLoadTask extends AsyncTask<String, Integer, Integer> {
     private boolean isPaused = false;
     private int lastProgress;
 
+    private String directory;
+    private String fileName;
+
     public DownLoadTask(DownloadListener listener){
         this.listener = listener;
     }
@@ -39,42 +43,36 @@ public class DownLoadTask extends AsyncTask<String, Integer, Integer> {
         File file = null;
 
         try{
+            int progress = 0; //进度
             long downloadedLength = 0; //记录已下载长度
             String downloadUrl = params[0];
-            String fileName = downloadUrl.substring(downloadUrl.lastIndexOf("/"));
-            String directory ;
+            fileName = downloadUrl.substring(downloadUrl.lastIndexOf("/"));
 
-            if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED))
-                //如果手机有sd卡，路径为sd卡download文件夹
-                directory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath();
-            else
-                //没有sd卡则路径为手机目录的download文件夹
-                directory = Environment.getRootDirectory().getPath();
-
+            directory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath();
             file = new File(directory + fileName);
             if (file.exists())
-                downloadedLength = file.length();
+                file.delete();
 
             //获取待下载文件长度
             long contentLength = getContentLength(downloadUrl);
 
             if (contentLength == 0)
                 return TYPE_FAILED;
-            else if (contentLength == downloadedLength)
+/*            else if (contentLength == downloadedLength)
                 //下载完成
-                return TYPE_SUCCESS;
+                return TYPE_SUCCESS;*/
 
             OkHttpClient client = new OkHttpClient();
             Request request = new Request.Builder()
-                    //断点下载，指定从哪个字节开始下载
-                    .addHeader("RANGE", "byte=" + downloadedLength + "-")
+/*                    //断点下载，指定从哪个字节开始下载
+                    .addHeader("RANGE", "byte=" + downloadedLength + "-")*/
                     .url(downloadUrl)
                     .build();
             Response response = client.newCall(request).execute();
             if (response != null){
                 is = response.body().byteStream();
                 savedFile = new RandomAccessFile(file, "rw");
-                savedFile.seek(downloadedLength); //跳过已下载字节
+                //savedFile.seek(downloadedLength); //跳过已下载字节
                 byte[] b = new byte[1024];
                 int total = 0;
                 int len;
@@ -88,7 +86,7 @@ public class DownLoadTask extends AsyncTask<String, Integer, Integer> {
                         total += len;
                         savedFile.write(b, 0, len);
                         //计算下载百分比
-                        int progress = (int) ((total + downloadedLength) * 100 / contentLength);
+                        progress = (int) ((total + downloadedLength) * 100 / contentLength);
                         publishProgress(progress);
                     }
                 }
@@ -127,7 +125,7 @@ public class DownLoadTask extends AsyncTask<String, Integer, Integer> {
     protected void onPostExecute(Integer status) {
         switch (status){
             case TYPE_SUCCESS:
-                listener.onSuccess();
+                listener.onSuccess(directory  + fileName);
                 break;
             case TYPE_FAILED:
                 listener.onFailed();
